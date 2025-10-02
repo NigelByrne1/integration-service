@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -470,10 +471,14 @@ func (a *Adapter) EnsureAllReleasesExist() (controller.OperationResult, error) {
 
 	autoReleaseMessage := ""
 	if len(*releasePlans) > 0 {
-		if err := a.createMissingReleasesForReleasePlans(a.application, releasePlans, a.snapshot); err != nil {
-			return a.handleReleaseError(err, "Failed to create new release")
+		if a.isSnapshotOlderThanLastBuild(a.snapshot) {
+			autoReleaseMessage = "Released in newer Snapshot"
+		} else {
+			if err := a.createMissingReleasesForReleasePlans(a.application, releasePlans, a.snapshot); err != nil {
+				return a.handleReleaseError(err, "Failed to create new release")
+			}
+			autoReleaseMessage = "The Snapshot was auto-released"
 		}
-		autoReleaseMessage = "The Snapshot was auto-released"
 	} else {
 		autoReleaseMessage = "Skipping auto-release of the Snapshot because no ReleasePlans have the 'auto-release' label set to 'true'"
 	}
@@ -1126,4 +1131,35 @@ func (a *Adapter) cancelAllPipelineRunsForSnapshot(snapshot *applicationapiv1alp
 		}
 	}
 	return nil
+}
+
+func (a *Adapter) isSnapshotOlderThanLastBuild(snapshot *applicationapiv1alpha1.Snapshot) bool {
+	componentName := snapshot.Labels[gitops.SnapshotComponentLabel]
+	if componentName == "" {
+		return false
+	}
+	snapshotBuildStartTime := snapshot.Annotations[gitops.BuildPipelineRunStartTime]
+	if snapshotBuildStartTime == "" {
+		return false
+	}
+	component, err := a.loader.GetComponentFromSnapshot(a.context, a.client, snapshot)
+	if err != nil {
+		return false
+	}
+	componentlastBuiltTime := component.Annotations[gitops.BuildPipelineLastBuiltTime]
+	if componentlastBuiltTime == "" {
+		return false //if no other builttime in component exists this snapshot and possibly component is new
+	}
+	snapshotBuildStartTimeInt, snapshotBuildStartTimeIntErr := strconv.ParseInt(snapshotBuildStartTime, 10, 64)
+	if snapshotBuildStartTimeIntErr != nil {
+		return false
+	}
+	componentlastBuiltTimeInt, componentlastBuiltTimeIntErr := strconv.ParseInt(componentlastBuiltTime, 10, 64)
+	if componentlastBuiltTimeIntErr != nil {
+		return false
+	}
+	if snapshotBuildStartTimeInt < componentlastBuiltTimeInt {
+		return true
+	}
+	return false
 }

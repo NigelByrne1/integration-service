@@ -1575,6 +1575,16 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 		})
 	})
 
+	When("snapshot is older than last build", func() {
+		It("ensures that snapshot as is marked with correct auto-release message", func() {
+			// CREATE COMPONENT WITH NEWER BUILD TIME+
+			// CREATE SNAPSHOT WITH OLDER BUILD TIME
+			// CREATE RELEASE PLAN
+			// RUN THE FUNCTION USING AN ADAPTER
+			// ENSURE THAT SNAPSHOT IS MARKED WITH CORRECT AUTO-RELEASE MESSAGE "Released in newer Snapshot"
+		})
+	})
+
 	Describe("EnsureRerunPipelineRunsExist", func() {
 
 		When("manual re-run of scenario using static env is trigerred", func() {
