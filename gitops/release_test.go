@@ -118,4 +118,15 @@ var _ = Describe("Auto-release annotation evaluation", Ordered, func() {
 		Expect(err).To(HaveOccurred())
 		Expect(allowed).To(BeFalse())
 	})
+
+	It("returns false when the snapshot has auto-release label false even if the expression is true", func() {
+		snapshotCopy := hasSnapshot.DeepCopy()
+		if snapshotCopy.Labels == nil {
+			snapshotCopy.Labels = make(map[string]string)
+		}
+		snapshotCopy.Labels[gitops.AutoReleaseLabel] = "false"
+		allowed, err := gitops.EvaluateSnapshotAutoReleaseAnnotation("true", snapshotCopy)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(allowed).To(BeFalse())
+	})
 })

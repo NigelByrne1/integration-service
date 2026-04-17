@@ -829,6 +829,30 @@ var _ = Describe("Loader", Ordered, func() {
 
 	})
 
+	It("returns no auto-release plans when the Snapshot has auto-release label false [APPLICATION]", func() {
+		snap := hasSnapshot.DeepCopy()
+		if snap.Labels == nil {
+			snap.Labels = make(map[string]string)
+		}
+		snap.Labels[gitops.AutoReleaseLabel] = "false"
+		plans, err := loader.GetAutoReleasePlansForApplication(ctx, k8sClient, hasApp, snap)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(plans).NotTo(BeNil())
+		Expect(*plans).To(BeEmpty())
+	})
+
+	It("returns no auto-release plans when the Snapshot has auto-release label false [ComponentGroup]", func() {
+		snap := hasSnapshot.DeepCopy()
+		if snap.Labels == nil {
+			snap.Labels = make(map[string]string)
+		}
+		snap.Labels[gitops.AutoReleaseLabel] = "false"
+		plans, err := loader.GetAutoReleasePlansForComponentGroup(ctx, k8sClient, hasComponentGroup1, snap)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(plans).NotTo(BeNil())
+		Expect(*plans).To(BeEmpty())
+	})
+
 	It("can get all TaskRuns present in the cluster that are associated with the given pipelineRun", func() {
 		taskRuns, err := loader.GetAllTaskRunsWithMatchingPipelineRunLabel(ctx, k8sClient, buildPipelineRun)
 		Expect(err).ToNot(HaveOccurred())

@@ -454,12 +454,17 @@ func (l *loader) GetAutoReleasePlansForApplication(ctx context.Context, c client
 		return nil, err
 	}
 
+	// snapshot level veto
+	if gitops.IsSnapshotAutoReleaseDisabled(snapshot) {
+		return &filteredReleasePlans.Items, nil
+	}
+
 	for _, rp := range allReleasePlans.Items {
 		annotationValue, ok := rp.GetAnnotations()[gitops.AutoReleaseLabel] // label and annotation have same value
 		if ok || annotationValue != "" {
 			// If the annotation exists we evaluate the expression and return that
 			canRelease, err := gitops.EvaluateSnapshotAutoReleaseAnnotation(annotationValue, snapshot)
-			if err != nil || !canRelease {
+			if err == nil && canRelease {
 				filteredReleasePlans.Items = append(filteredReleasePlans.Items, rp)
 			}
 		} else if !metadata.HasLabelWithValue(&rp, gitops.AutoReleaseLabel, "false") {
@@ -487,12 +492,17 @@ func (l *loader) GetAutoReleasePlansForComponentGroup(ctx context.Context, c cli
 		return nil, err
 	}
 
+	// snapshot level veto
+	if gitops.IsSnapshotAutoReleaseDisabled(snapshot) {
+		return &filteredReleasePlans.Items, nil
+	}
+
 	for _, rp := range allReleasePlans.Items {
-		annotationValue := rp.GetAnnotations()[gitops.AutoReleaseLabel] // label and annotation have same value
-		if annotationValue != "" {
+		annotationValue, ok := rp.GetAnnotations()[gitops.AutoReleaseLabel] // label and annotation have same value
+		if ok || annotationValue != "" {
 			// If the annotation exists we evaluate the expression and return that
 			canRelease, err := gitops.EvaluateSnapshotAutoReleaseAnnotation(annotationValue, snapshot)
-			if err != nil || !canRelease {
+			if err == nil && canRelease {
 				filteredReleasePlans.Items = append(filteredReleasePlans.Items, rp)
 			}
 		} else if !metadata.HasLabelWithValue(&rp, gitops.AutoReleaseLabel, "false") {
